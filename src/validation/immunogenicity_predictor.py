@@ -4,29 +4,32 @@ from mhcflurry import Class1AffinityPredictor
 import time
 import re
 
+    
+
+
 class MHCflurryPredictor:
     def __init__(self, alleles=None):
         """
-        初始化MHCflurry预测器
-        :param alleles: 待预测的等位基因列表，默认使用常见HLA类型
+        initialize MHCflurry predictor
+        :param alleles: the potential alleles，HLA ttypes
         """
         if alleles is None:
-            # 常见HLA-A和HLA-B等位基因（可根据需要调整）
+            # common HLA-A and HLA-B alleles
             self.alleles = [
-                "HLA-A01:01", "HLA-A02:01", "HLA-A03:01", "HLA-A11:01",
-                "HLA-A24:02", "HLA-B07:02", "HLA-B08:01", "HLA-B15:01",
-                "HLA-B35:01", "HLA-B40:01"
+                "HLA-A02:01"
             ]
         else:
             self.alleles = alleles
         
         # 加载预测器（第一次运行会自动下载模型）
-        print("⏳ 加载MHCflurry预测器...")
+        print("Load MHCflurry Predictor...")
         self.predictor = Class1AffinityPredictor.load()
-        print("✅ MHCflurry加载完成")
+        print("✅ MHCflurry Loading finished")
     
-    def predict_peptides(self, sequence, peptide_lengths=[9, 10, 11]):
+    def predict_peptides(self, sequence, peptide_lengths=[9]):
         """
+        to split the sequence into different length of peptides, and predict the IC50(nM) of each peptide
+        return a DataFrame which contains peptides, alleles, and IC50
         将蛋白序列切分为所有可能的肽段，并预测每个肽段的IC50 (nM)
         返回DataFrame，包含肽段、等位基因、IC50等信息
         """
@@ -47,9 +50,8 @@ class MHCflurryPredictor:
                     peptides.append(clean_chain[i:i+length])
             if len(sequence) < min(peptide_lengths):
                 return pd.DataFrame()
-        
-    
-        
+
+
         # MHCflurry可以同时预测多个肽段和多个等位基因
         results = []
         for allele in self.alleles:
@@ -115,11 +117,12 @@ class MHCflurryPredictor:
             "error": ""
         }
     
-    def predict(self, sequence, allele=None, peptide_length=9):
+
+    def predict(self, sequence):
         """
-        兼容原接口的predict方法
-        allele和peptide_length参数被忽略（我们使用多等位基因和多长度）
+        对给定序列进行全面免疫原性评估：
+        - 使用预设的多个常见等位基因
+        - 扫描所有肽段长度 (8-11)
         """
         df = self.predict_peptides(sequence)
-        result = self.aggregate_immunogenicity(df)
-        return result
+        return self.aggregate_immunogenicity(df)
